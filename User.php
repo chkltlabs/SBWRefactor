@@ -7,49 +7,62 @@ class User
     const USER = 'db_user';
     const PASSWORD = 'db_pass';
 
+    const ATTR_ARRAY = ['id','name','alias','addresss','phone','email','password'];
+
+    function __construct($attributes = [])
+    {
+        //if the array passed to the constructor is not empty
+        if(!empty($attributes)){
+            //loop through possible values
+            foreach (self::ATTR_ARRAY as $attr){
+                //if the array passed to the constructor has the given value set, and it is not set to NULL
+                if(isset($attributes[$attr]) && $attributes[$attr] !== null){
+                    //dynamically set an object level var with a matching name to the current $attr entry
+                    $this->$attr = $attributes[$attr];
+                }
+            }
+        }
+
+    }
+
     function create()
     {
-
-        $name = $_POST['name'];
-
-        $alias = $_POST['alias'];
-
-        $address = $_POST['address'];
-
-        $phone = $_POST['phone'];
-
-        $email = $_POST['email'];
-
-        $password = $_POST['password'];
-
-        $sql = "INSERT INTO users (name, alias, address, phone, email, password) VALUES ( ?, ?, ?, ?, ?, ?) ";
+        $setAttrs = [];
+        $insertClause = "INSERT INTO users(";
+        $valuesClause = " VALUES (";
+        //loop through possible values, and if they are set, add them to the sql
+        foreach (self::ATTR_ARRAY as $attr){
+            if(isset($this->$attr)){
+                $insertClause .= "$attr, ";
+                $valuesClause .= " ?,";
+                $setAttrs[] = $this->$attr;
+            }
+        }
+        //remove trailing comma from final concats
+        $insertClause = substr($insertClause, 0, -1);
+        $valuesClause = substr($valuesClause, 0, -1);
+        //complete strings and concat into $sql
+        $insertClause .= ')';
+        $valuesClause .= ')';
+        $sql = $insertClause . $valuesClause;
 
         try {
-            $this->runPDO($sql, [$name, $alias, $address, $phone, $email, $password]);
+            $this->runPDO($sql, $setAttrs);
         } catch (\PDOException $e) {
             throw new \PDOException($e->getMessage(), $e->getCode());
         }
 
-
-//          These functions are deprecated, and should be replaced with mysqli or PDO
-//        $cn = mysql_connect('127.0.0.1', 'db_user', 'db_pass');
-//
-//        $db = mysql_select_db('sb_db');
-//
-//        mysql_query('INSERT INTO users '
-//
-//            . '(name, alias, address, phone, email, password) '
-//
-//            . 'VALUES '
-//
-//            . '("$name", "$alias", "$address", "$phone", "$email", "$password"');
-
     }
 
-    function read()
+    function read($id)
     {
-
-        $id = $_GET['id'];
+        if($id == null && isset($this->id)){
+            $id = $this->id;
+        }
+        //if we are still missing an id, do nothing. cant read without an id
+        if($id == null){
+            return;
+        }
 
         $sql = "SELECT * FROM users WHERE id = ?";
 
@@ -60,71 +73,50 @@ class User
             throw new \PDOException($e->getMessage(), $e->getCode());
         }
 
-
-//          These functions are deprecated, and should be replaced with mysqli or PDO
-//        $cn = mysql_connect('127.0.0.1', 'db_user', 'db_pass');
-//
-//        $db = mysql_select_db('sb_db');
-//
-//        $result = mysql_query('SELECT * FROM users WHERE id = "$id"');
-//
-//        $this = mysql_fetch_row($result);
-
     }
 
-    function update()
+    function update($id)
     {
 
-        $id = $_POST['id'];
+        if($id == null && isset($this->id)){
+            $id = $this->id;
+        }
+        //if we are still missing an id, do nothing. cant update without an id
+        if($id == null){
+            return;
+        }
 
-        $name = $_POST['name'];
-
-        $alias = $_POST['alias'];
-
-        $address = $_POST['address'];
-
-        $phone = $_POST['phone'];
-
-        $email = $_POST['email'];
-
-        $password = $_POST['password'];
-
-        $sql = "UPDATE users SET name=?, alias=?, address=?, phone=?, email=?, password=? WHERE id=?";
+        $setAttrs = [];
+        $sql = "UPDATE users SET ";
+        //loop through possible values, and if they are set, add them to the sql
+        foreach (self::ATTR_ARRAY as $attr){
+            if(isset($this->$attr) && $attr !== 'id'){
+                $sql .= "$attr=?, ";
+                $setAttrs[] = $this->$attr;
+            }
+        }
+        //remove trailing comma from final concats
+        $sql = substr($sql, 0, -1);
+        //concat where clause
+        $sql .= "WHERE id=$id";
 
         try {
-            $this->runPDO($sql, [$name, $alias, $address, $phone, $email, $password, $id]);
+            $this->runPDO($sql, $setAttrs);
         } catch (\PDOException $e) {
             throw new \PDOException($e->getMessage(), $e->getCode());
         }
 
-
-//          These functions are deprecated, and should be replaced with mysqli or PDO
-//        $cn = mysql_connect('127.0.0.1', 'db_user', 'db_pass');
-//
-//        $db = mysql_select_db('sb_db');
-//
-//        mysql_query('UPDATE users SET '
-//
-//            .'name="$name", '
-//
-//            .'alias="$alias", '
-//
-//            .'address="$address", '
-//
-//            .'phone="$phone", '
-//
-//            .'email="$email", '
-//
-//            .'password="$password" '
-//
-//            .'WHERE id ="$id"');
-
     }
 
-    function delete()
+    function delete($id)
     {
-
-        $id = $_GET['id'];
+        if($id == null && isset($this->id)){
+            $id = $this->id;
+        }
+        //if we are still missing an id, do nothing. cant delete without an id
+        if($id == null){
+            return;
+        }
 
         $sql = "DELETE FROM users WHERE id = ?";
 
@@ -133,13 +125,6 @@ class User
         } catch (\PDOException $e) {
             throw new \PDOException($e->getMessage(), $e->getCode());
         }
-
-//          These functions are deprecated, and should be replaced with mysqli or PDO
-//        $cn = mysql_connect('127.0.0.1', 'db_user', 'db_pass');
-//
-//        $db = mysql_select_db('sb_db');
-//
-//        mysql_query('DELETE FROM users WHERE id = "$id"');
 
     }
 
